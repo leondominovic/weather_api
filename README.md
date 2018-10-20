@@ -30,7 +30,7 @@ The API is used for fetching weather podcasts via the Open Weather API for races
 ## Prerequisites
 
 For compile and running this project you need to have installed [GO](https://golang.org/dl/)(version 1.9 or newer) on your computer and [PostgreSQL](https://www.postgresql.org/).
-Also is recommended that you install also [Dep](Go dependency management tool), for fast installation of required library's.
+Also is recommended that you install also [Dep](https://github.com/golang/dep) (Go dependency management tool), for fast installation of required library's.
 
 ## Built With
 
