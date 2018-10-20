@@ -7,23 +7,23 @@ The API is used for fetching weather podcasts via the Open Weather API for races
 ## API endpoints
 
 #### Get forecasts for a race
-* Path: /utrka/:id/prognoza
+* Path: /race/:id/forecast
 * Method: GET
 
 #### Get the deteils about one race
-* Path: /utrka/:id
+* Path: /race/:id
 * Method: GET
 
 #### Create race
-* Path: /utrka
+* Path: /race
 * Method: POST
 
 #### Update one race
-* Path: /utrka/:id
+* Path: /race/:id
 * Method: PUT
 
 #### Delete a race
-* Path: /utrka/:id
+* Path: /race/:id
 * Method: DELETE
 
 

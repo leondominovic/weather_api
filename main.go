@@ -29,11 +29,11 @@ func initializeRoutes() *gin.Engine {
 	// u slučaju kasnije nadogradnje api-ja, lakše prebacivanje na njegove različite verzije.
 	v1 := router.Group("api/v1")
 	{
-		v1.GET("/utrka/:id/prognoza", api.GetWeatherHandler)
-		v1.POST("/utrka", api.CreateRaceHandler)
-		v1.GET("/utrka/:id", api.GetRaceHandler)
-		v1.PUT("/utrka/:id", api.UpdateRaceHandler)
-		v1.DELETE("/utrka/:id", api.DeleteRaceHandler)
+		v1.GET("/race/:id/forecast", api.GetWeatherHandler)
+		v1.POST("/race", api.CreateRaceHandler)
+		v1.GET("/race/:id", api.GetRaceHandler)
+		v1.PUT("/race/:id", api.UpdateRaceHandler)
+		v1.DELETE("/race/:id", api.DeleteRaceHandler)
 	}
 
 	return router
@@ -55,9 +55,9 @@ func main() {
 
 	// Pokretanje procesa koji je zadužen za automatsko
 	// ažuriranje svakih 6 sati i procesa koji se brine o
-	// brisanju prognoza za utrke koje su prošle svaki sat vremena.
+	// brisanju forecast za utrke koje su prošle svaki sat vremena.
 	// Proces za ažuriranje pokrećemo u posebnoj goroutine, kako,
-	// u sluačaju čekanja, kod dohvaćanja ažuriranja prognoza, cijeli
+	// u sluačaju čekanja, kod dohvaćanja ažuriranja forecast, cijeli
 	// api ne bi postao nedostupan.
 	go gocron.Every(6).Hours().Do(api.AutomaticUpdate)
 	gocron.Every(1).Hours().Do(api.DeleteWeatherPodcast)
