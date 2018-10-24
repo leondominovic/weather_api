@@ -4,6 +4,9 @@
 This is the RESTful API which can be used like the microservice for the web app. I created first version of this project when I get one technical task from one company. 
 The API is used for fetching weather podcasts via the Open Weather API for races which are being held anytime, anywhere. Service automatically update forecasts for the races and automatically delete forecasts for races which are ended.
 
+
+For now comments are on Croatian language.
+
 ## API endpoints
 
 #### Get forecasts for a race
