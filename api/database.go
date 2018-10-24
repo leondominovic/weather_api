@@ -388,6 +388,7 @@ func UpdateRace(id int64, name, lat, lon string, start, end time.Time) (returnVa
 
 // GetNotFinishedRaces služi za dohvat nezavršenih utrka iz baze
 func GetNotFinishedRaces() (races []NotFinishedRace, err error) {
+
 	sqlStr := `SELECT 
 					*
 				FROM 
