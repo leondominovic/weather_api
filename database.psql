@@ -1,0 +1,433 @@
+--
+-- PostgreSQL database dump
+--
+
+-- Dumped from database version 10.5 (Ubuntu 10.5-0ubuntu0.18.04)
+-- Dumped by pg_dump version 10.5 (Ubuntu 10.5-0ubuntu0.18.04)
+
+SET statement_timeout = 0;
+SET lock_timeout = 0;
+SET idle_in_transaction_session_timeout = 0;
+SET client_encoding = 'UTF8';
+SET standard_conforming_strings = on;
+SELECT pg_catalog.set_config('search_path', '', false);
+SET check_function_bodies = false;
+SET client_min_messages = warning;
+SET row_security = off;
+
+--
+-- Name: plpgsql; Type: EXTENSION; Schema: -; Owner: 
+--
+
+CREATE EXTENSION IF NOT EXISTS plpgsql WITH SCHEMA pg_catalog;
+
+
+--
+-- Name: EXTENSION plpgsql; Type: COMMENT; Schema: -; Owner: 
+--
+
+COMMENT ON EXTENSION plpgsql IS 'PL/pgSQL procedural language';
+
+
+--
+-- Name: full_race; Type: TYPE; Schema: public; Owner: weather_api_user
+--
+
+CREATE TYPE public.full_race AS (
+	loc_id integer,
+	race_id integer,
+	name character varying(50),
+	race_start timestamp with time zone,
+	race_end timestamp with time zone,
+	lat numeric,
+	lon numeric
+);
+
+
+ALTER TYPE public.full_race OWNER TO weather_api_user;
+
+--
+-- Name: two_id; Type: TYPE; Schema: public; Owner: weather_api_user
+--
+
+CREATE TYPE public.two_id AS (
+	race_id integer,
+	loc_id integer
+);
+
+
+ALTER TYPE public.two_id OWNER TO weather_api_user;
+
+--
+-- Name: create_race(character varying, numeric, numeric, timestamp without time zone, timestamp without time zone); Type: FUNCTION; Schema: public; Owner: weather_api_user
+--
+
+CREATE FUNCTION public.create_race(name character varying, new_lat numeric, new_lon numeric, race_start timestamp without time zone, race_end timestamp without time zone) RETURNS integer[]
+    LANGUAGE plpgsql
+    AS $_$
+DECLARE
+    new_loc_id INTEGER;
+    new_race_id INTEGER;
+    TWO_ID INTEGER[2];
+BEGIN
+    SELECT location_id INTO new_loc_id FROM locations WHERE lat = $2 AND lon = $3;
+IF FOUND THEN
+        INSERT INTO races VALUES (DEFAULT, $1, $4, $5, new_loc_id) RETURNING race_id INTO new_race_id;
+        TWO_ID[1] = new_race_id;
+        TWO_ID[2] = new_loc_id;
+        RETURN  TWO_ID;
+ELSE
+    INSERT INTO 
+        locations(lat,lon) 
+    VALUES 
+        ($2,$3)
+    RETURNING location_id INTO new_loc_id;
+    INSERT INTO 
+        races
+    VALUES
+        (DEFAULT,
+        $1,
+        $4,
+        $5,
+        new_loc_id)
+    RETURNING race_id INTO new_race_id;
+    TWO_ID[1] = new_race_id;
+    TWO_ID[2] = new_loc_id;
+    RETURN  TWO_ID;
+END IF;
+END;
+$_$;
+
+
+ALTER FUNCTION public.create_race(name character varying, new_lat numeric, new_lon numeric, race_start timestamp without time zone, race_end timestamp without time zone) OWNER TO weather_api_user;
+
+--
+-- Name: delete_race(integer); Type: FUNCTION; Schema: public; Owner: weather_api_user
+--
+
+CREATE FUNCTION public.delete_race(integer) RETURNS boolean
+    LANGUAGE plpgsql
+    AS $_$
+DECLARE
+    loc_id INTEGER;
+    raceD_start TIMESTAMP WITH TIME ZONE;
+    raceD_end TIMESTAMP WITH TIME ZONE;
+BEGIN
+    DELETE FROM races WHERE race_id = $1
+    RETURNING location_id, race_start, race_end INTO loc_id, raceD_start, raceD_end;
+
+    IF NOT FOUND THEN RETURN FALSE;
+    END IF;
+
+    IF NOT EXISTS (SELECT * FROM races WHERE location_id = loc_id) THEN
+        DELETE FROM locations WHERE location_id = loc_id;
+        RETURN TRUE;
+    ELSE
+        DELETE FROM forecasts WHERE location_id = loc_id AND
+            raceD_start <= forecast_time AND
+            raceD_end >= forecast_time 
+            AND NOT EXISTS(SELECT * FROM races WHERE location_id = loc_id AND forecast_time >= race_start AND forecast_time <= race_end);
+            RETURN TRUE;  
+    END IF;
+END;
+$_$;
+
+
+ALTER FUNCTION public.delete_race(integer) OWNER TO weather_api_user;
+
+--
+-- Name: update_race(integer, character varying, timestamp with time zone, timestamp with time zone, numeric, numeric); Type: FUNCTION; Schema: public; Owner: weather_api_user
+--
+
+CREATE FUNCTION public.update_race(id integer, name character varying, race_start timestamp with time zone, race_end timestamp with time zone, new_lat numeric, new_lon numeric) RETURNS integer
+    LANGUAGE plpgsql
+    AS $_$
+DECLARE
+    new_loc_id INTEGER;
+    race full_race;
+BEGIN
+    SELECT * FROM races INTO race NATURAL INNER JOIN locations WHERE races.race_id=$1;
+    IF NOT FOUND THEN
+        RETURN 0;
+    ELSE 
+        IF race.name = $2 AND race.lat = $5 AND race.lon = $6 AND race.race_start = $3 AND race.race_end = $4
+            THEN 
+                RETURN 0;
+        ELSIF race.name != $2 AND race.lat = $5 AND race.lon = $6 AND race.race_start = $3 AND race.race_end = $4 
+            THEN
+                UPDATE races SET name = $2 WHERE races.race_id = $1;
+                RETURN 1;
+        ELSIF race.lat = $5 AND race.lon = $6
+            THEN
+                UPDATE races SET name = $2, race_start =$3, race_end = $4 WHERE races.race_id = $1;
+                DELETE FROM forecasts WHERE location_id = race.loc_id
+                    AND
+                        NOT EXISTS (SELECT * FROM races WHERE location_id = race.loc_id
+                                                    AND
+                                                        races.race_start <= forecasts.forecast_time
+                                                    AND
+                                                        races.race_end >= forecasts.forecast_time);
+                RETURN 3;
+        ELSE
+            SELECT location_id INTO new_loc_id FROM locations WHERE lat=$5 AND lon = $6;
+            IF NOT FOUND
+                THEN
+                    INSERT INTO locations VALUES (DEFAULT, $5, $6) RETURNING location_id INTO new_loc_id;
+            END IF;
+            UPDATE races SET name = $2, race_start =$3, race_end = $4, location_id = new_loc_id WHERE races.race_id = $1;
+            IF NOT EXISTS (SELECT * FROM races WHERE location_id = race.loc_id)
+                THEN
+                    DELETE FROM locations WHERE location_id = race.loc_id;
+            ELSE
+                DELETE FROM forecasts WHERE location_id = race.loc_id
+                    AND
+                    NOT EXISTS (SELECT * FROM races WHERE location_id = race.loc_id
+                                                    AND
+                                                        races.race_start <= forecasts.forecast_time
+                                                    AND
+                                                        races.race_end >= forecasts.forecast_time);
+            END IF;
+            RETURN 4;
+        END IF;
+    END IF;
+END;
+$_$;
+
+
+ALTER FUNCTION public.update_race(id integer, name character varying, race_start timestamp with time zone, race_end timestamp with time zone, new_lat numeric, new_lon numeric) OWNER TO weather_api_user;
+
+--
+-- Name: update_weather(character varying[]); Type: FUNCTION; Schema: public; Owner: weather_api_user
+--
+
+CREATE FUNCTION public.update_weather(array_of_data character varying[]) RETURNS integer
+    LANGUAGE plpgsql
+    AS $_$
+DECLARE
+    element VARCHAR(50)[];
+    i INT := 0;
+BEGIN
+    FOREACH element SLICE 1 IN ARRAY $1 
+    LOOP
+        IF EXISTS (SELECT * FROM races WHERE 
+                                            location_id = element[1]::INT
+                                        AND
+                                            race_start <= element[3]::timestamp
+                                        AND
+                                            race_end >= element[3]::timestamp)
+            THEN
+                INSERT INTO forecasts VALUES (element[1]::int, element[2], element[3]::timestamp,
+                                            element[4]::decimal, element[5]::decimal, element[6]::decimal,
+                                             element[7]::int, element[8]::decimal)
+                 ON CONFLICT ON CONSTRAINT forecasts_location_id_forecast_time_key
+                 DO UPDATE SET 
+                    icon = element[2], rain = element[4]::decimal, snow = element[5]::decimal,
+                    temperature = element[6]::decimal, humidity = element[7]::int,  wind_speed = element[8]::decimal;
+                i := i + 1;
+        END IF;
+    END LOOP;
+    RETURN i;
+END;
+$_$;
+
+
+ALTER FUNCTION public.update_weather(array_of_data character varying[]) OWNER TO weather_api_user;
+
+SET default_tablespace = '';
+
+SET default_with_oids = false;
+
+--
+-- Name: forecasts; Type: TABLE; Schema: public; Owner: weather_api_user
+--
+
+CREATE TABLE public.forecasts (
+    location_id integer,
+    icon character varying(20) NOT NULL,
+    forecast_time timestamp without time zone NOT NULL,
+    rain numeric,
+    snow numeric,
+    temperature numeric NOT NULL,
+    humidity integer NOT NULL,
+    wind_speed numeric NOT NULL
+);
+
+
+ALTER TABLE public.forecasts OWNER TO weather_api_user;
+
+--
+-- Name: locations; Type: TABLE; Schema: public; Owner: weather_api_user
+--
+
+CREATE TABLE public.locations (
+    location_id integer NOT NULL,
+    lat numeric NOT NULL,
+    lon numeric NOT NULL
+);
+
+
+ALTER TABLE public.locations OWNER TO weather_api_user;
+
+--
+-- Name: locations_location_id_seq; Type: SEQUENCE; Schema: public; Owner: weather_api_user
+--
+
+CREATE SEQUENCE public.locations_location_id_seq
+    AS integer
+    START WITH 1
+    INCREMENT BY 1
+    NO MINVALUE
+    NO MAXVALUE
+    CACHE 1;
+
+
+ALTER TABLE public.locations_location_id_seq OWNER TO weather_api_user;
+
+--
+-- Name: locations_location_id_seq; Type: SEQUENCE OWNED BY; Schema: public; Owner: weather_api_user
+--
+
+ALTER SEQUENCE public.locations_location_id_seq OWNED BY public.locations.location_id;
+
+
+--
+-- Name: races; Type: TABLE; Schema: public; Owner: weather_api_user
+--
+
+CREATE TABLE public.races (
+    race_id integer NOT NULL,
+    name character varying(60) NOT NULL,
+    race_start timestamp with time zone NOT NULL,
+    race_end timestamp with time zone NOT NULL,
+    location_id integer
+);
+
+
+ALTER TABLE public.races OWNER TO weather_api_user;
+
+--
+-- Name: race_race_id_seq; Type: SEQUENCE; Schema: public; Owner: weather_api_user
+--
+
+CREATE SEQUENCE public.race_race_id_seq
+    AS integer
+    START WITH 1
+    INCREMENT BY 1
+    NO MINVALUE
+    NO MAXVALUE
+    CACHE 1;
+
+
+ALTER TABLE public.race_race_id_seq OWNER TO weather_api_user;
+
+--
+-- Name: race_race_id_seq; Type: SEQUENCE OWNED BY; Schema: public; Owner: weather_api_user
+--
+
+ALTER SEQUENCE public.race_race_id_seq OWNED BY public.races.race_id;
+
+
+--
+-- Name: locations location_id; Type: DEFAULT; Schema: public; Owner: weather_api_user
+--
+
+ALTER TABLE ONLY public.locations ALTER COLUMN location_id SET DEFAULT nextval('public.locations_location_id_seq'::regclass);
+
+
+--
+-- Name: races race_id; Type: DEFAULT; Schema: public; Owner: weather_api_user
+--
+
+ALTER TABLE ONLY public.races ALTER COLUMN race_id SET DEFAULT nextval('public.race_race_id_seq'::regclass);
+
+
+--
+-- Data for Name: forecasts; Type: TABLE DATA; Schema: public; Owner: weather_api_user
+--
+
+COPY public.forecasts (location_id, icon, forecast_time, rain, snow, temperature, humidity, wind_speed) FROM stdin;
+\.
+
+
+--
+-- Data for Name: locations; Type: TABLE DATA; Schema: public; Owner: weather_api_user
+--
+
+COPY public.locations (location_id, lat, lon) FROM stdin;
+\.
+
+
+--
+-- Data for Name: races; Type: TABLE DATA; Schema: public; Owner: weather_api_user
+--
+
+COPY public.races (race_id, name, race_start, race_end, location_id) FROM stdin;
+\.
+
+
+--
+-- Name: locations_location_id_seq; Type: SEQUENCE SET; Schema: public; Owner: weather_api_user
+--
+
+SELECT pg_catalog.setval('public.locations_location_id_seq', 24, true);
+
+
+--
+-- Name: race_race_id_seq; Type: SEQUENCE SET; Schema: public; Owner: weather_api_user
+--
+
+SELECT pg_catalog.setval('public.race_race_id_seq', 144, true);
+
+
+--
+-- Name: forecasts forecasts_location_id_forecast_time_key; Type: CONSTRAINT; Schema: public; Owner: weather_api_user
+--
+
+ALTER TABLE ONLY public.forecasts
+    ADD CONSTRAINT forecasts_location_id_forecast_time_key UNIQUE (location_id, forecast_time);
+
+
+--
+-- Name: locations locations_lat_lon_key; Type: CONSTRAINT; Schema: public; Owner: weather_api_user
+--
+
+ALTER TABLE ONLY public.locations
+    ADD CONSTRAINT locations_lat_lon_key UNIQUE (lat, lon);
+
+
+--
+-- Name: locations locations_pkey; Type: CONSTRAINT; Schema: public; Owner: weather_api_user
+--
+
+ALTER TABLE ONLY public.locations
+    ADD CONSTRAINT locations_pkey PRIMARY KEY (location_id);
+
+
+--
+-- Name: races race_pkey; Type: CONSTRAINT; Schema: public; Owner: weather_api_user
+--
+
+ALTER TABLE ONLY public.races
+    ADD CONSTRAINT race_pkey PRIMARY KEY (race_id);
+
+
+--
+-- Name: forecasts forecasts_location_id_fkey; Type: FK CONSTRAINT; Schema: public; Owner: weather_api_user
+--
+
+ALTER TABLE ONLY public.forecasts
+    ADD CONSTRAINT forecasts_location_id_fkey FOREIGN KEY (location_id) REFERENCES public.locations(location_id) MATCH FULL ON DELETE CASCADE;
+
+
+--
+-- Name: races race_location_id_fkey; Type: FK CONSTRAINT; Schema: public; Owner: weather_api_user
+--
+
+ALTER TABLE ONLY public.races
+    ADD CONSTRAINT race_location_id_fkey FOREIGN KEY (location_id) REFERENCES public.locations(location_id) MATCH FULL ON DELETE RESTRICT;
+
+
+--
+-- PostgreSQL database dump complete
+--
+

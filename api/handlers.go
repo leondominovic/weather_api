@@ -10,6 +10,7 @@ import (
 	"github.com/gin-gonic/gin"
 )
 
+// GetWeatherHandler funkcija
 func GetWeatherHandler(c *gin.Context) {
 
 	// Dohvaćamo id u obliku stringa iz GET zahtjeva
@@ -40,13 +41,14 @@ func GetWeatherHandler(c *gin.Context) {
 	return
 }
 
+// GetRaceHandler funkcija
 func GetRaceHandler(c *gin.Context) {
 	// Dohvaćamo id u obliku stringa iz GET zahtjeva
 	idString := c.Param("id")
 
 	// Pretvaramo dohvaćeni u int, odmah i
 	// provjeramo potencijalnu grešku.
-	id, err := strconv.Atoi(idString)
+	id, err := strconv.ParseInt(idString, 0, 64)
 	if err != nil {
 		c.JSON(http.StatusBadRequest, gin.H{"Greska": "ID mora biti cijeli broj!"})
 		log.Print(err)
@@ -68,6 +70,7 @@ func GetRaceHandler(c *gin.Context) {
 	return
 }
 
+// CreateRaceHandler funckija
 func CreateRaceHandler(c *gin.Context) {
 
 	// Dohvat podataka iz POST zahtjeva
@@ -85,19 +88,18 @@ func CreateRaceHandler(c *gin.Context) {
 		return
 	}
 	// Pozicanje funkcije za dodavanjem nove utrke
-	id, err := CreateRace(naziv, lat, lon, start, end)
+	raceID, locID, err := CreateRace(naziv, lat, lon, start, end)
 	if err != nil {
 		log.Print(err)
 		c.JSON(http.StatusInternalServerError, gin.H{"Greska": fmt.Sprint(err)})
 		return
-	} else {
-		c.JSON(http.StatusOK, gin.H{"Poruka": "Utrka je uspješno dodana!", "Id_utrke": id})
 	}
+	c.JSON(http.StatusOK, gin.H{"Poruka": "Utrka je uspješno dodana!", "Id_utrke": raceID})
 
 	// Nakon dodavanje nove utrke potrebno
 	// je dodati prognoze za novu utrku u bazu podataka.
 	// Prvo dohvaćamo prognoze vremena sa Open Weather
-	err, data := GetWeatherFromOpenWeather(lat, lon, pocetak, kraj)
+	data, err := GetWeatherFromOpenWeather(lat, lon, pocetak, kraj)
 	if err != nil {
 		log.Print(err)
 		fmt.Printf("Greška: %s", fmt.Sprint(err))
@@ -106,7 +108,7 @@ func CreateRaceHandler(c *gin.Context) {
 
 	// Potom podatke prognoze proslijeđujemo funkciji
 	// koja će ih spremiti u bazu podataka
-	err = InsertWeatherPodcast(data, id)
+	err = InsertWeatherPodcast(data, locID)
 	if err != nil {
 		log.Printf("Greška pri dodavanju prognoza: %v", err)
 		fmt.Printf("Greška pri dodavanju prognoza: %s", err)
@@ -116,6 +118,7 @@ func CreateRaceHandler(c *gin.Context) {
 
 }
 
+// UpdateRaceHandler funkcija
 func UpdateRaceHandler(c *gin.Context) {
 
 	// Dohvat ID utrke koje treba izmijeniti
@@ -123,7 +126,7 @@ func UpdateRaceHandler(c *gin.Context) {
 
 	// Pretvaramo dohvaćeni id u int, odmah i
 	// provjeramo potencijalnu grešku.
-	id, err := strconv.Atoi(idString)
+	id, err := strconv.ParseInt(idString, 0, 64)
 	if err != nil {
 		c.JSON(http.StatusBadRequest, gin.H{"Greska": "ID mora biti cijeli broj!"})
 		log.Print(err)
@@ -145,7 +148,7 @@ func UpdateRaceHandler(c *gin.Context) {
 	}
 
 	// Pozivanje funkcije za ažuriranje utrke
-	needUpdate, err := UpdateRace(id, naziv, lat, lon, start, end)
+	update, err := UpdateRace(id, naziv, lat, lon, start, end)
 
 	// Ako postoji greška vraćamo je, ako ne postoji onda
 	// provjeramo treba li ažurirati podatke vezane za prognozu.
@@ -155,21 +158,19 @@ func UpdateRaceHandler(c *gin.Context) {
 		c.JSON(http.StatusInternalServerError, gin.H{"Greska": err})
 		return
 	}
-	c.JSON(http.StatusOK, gin.H{"Poruka": "Utrka je uspješno ažurirana!", "Id": id})
-
-	if !needUpdate {
+	if update == 0 {
+		c.JSON(http.StatusBadRequest, gin.H{"Poruka": "Neuspješno ažuriranje! Nepostojeći id ili su svi podatci isti."})
 		return
 	}
 
-	// Prvo pobrišemo stare progonoze, koje su možda nevažeće.
-	err = DeleteWeatherPodcastByID(id)
-	if err != nil {
+	c.JSON(http.StatusOK, gin.H{"Poruka": "Utrka je uspješno ažurirana!", "Id": id})
+	if update == 1 {
 		return
 	}
 
 	// Nakon ažuriranje nove utrke potrebno
 	// je ažurirati prognoze.
-	err, data := GetWeatherFromOpenWeather(lat, lon, pocetak, kraj)
+	data, err := GetWeatherFromOpenWeather(lat, lon, pocetak, kraj)
 	if err != nil {
 		log.Print(err)
 		fmt.Printf("Greška: %s", err)
@@ -187,6 +188,7 @@ func UpdateRaceHandler(c *gin.Context) {
 	return
 }
 
+// DeleteRaceHandler funkcija
 func DeleteRaceHandler(c *gin.Context) {
 	// Dohvaćamo id u obliku stringa iz GET zahtjeva
 	idString := c.Param("id")

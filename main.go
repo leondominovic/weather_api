@@ -2,7 +2,6 @@ package main
 
 import (
 	"io"
-	"log"
 	"os"
 
 	"weather_api/api"
@@ -10,12 +9,12 @@ import (
 	"github.com/gin-gonic/gin"
 	// Biblioteka koja nam omogućuje zadavanje
 	// vremnski određenih automatskih zadaća
-	"github.com/jasonlvhit/gocron"
 )
 
 // export DBUSER="weather_api_user"; export DBPASS=jud34DZ1; export DBHOST="localhost"; export DBNAME="weather_api_db"; export DBPORT="5432";
 
 func initializeRoutes() *gin.Engine {
+	gin.SetMode(gin.DebugMode)
 	router := gin.Default()
 	router.Use(
 		// Logger middleware will write the logs to gin.DefaultWriter even if you set with GIN_MODE=release.
@@ -44,9 +43,9 @@ func main() {
 	f, _ := os.Create("gin.log")
 	gin.DefaultWriter = io.MultiWriter(f)
 
-	// Zapisivanje grešaka u datoteku greske.log
-	f1, _ := os.Create("greske.log")
-	log.SetOutput(io.MultiWriter(f1))
+	// // Zapisivanje grešaka u datoteku greske.log
+	// f1, _ := os.Create("greske.log")
+	// log.SetOutput(io.MultiWriter(f1))
 
 	// Inicijalizacija rutera
 	router := initializeRoutes()
@@ -59,9 +58,11 @@ func main() {
 	// Proces za ažuriranje pokrećemo u posebnoj goroutine, kako,
 	// u sluačaju čekanja, kod dohvaćanja ažuriranja forecast, cijeli
 	// api ne bi postao nedostupan.
-	go gocron.Every(6).Hours().Do(api.AutomaticUpdate)
-	gocron.Every(1).Hours().Do(api.DeleteWeatherPodcast)
-	gocron.Start()
+	// go gocron.Every(6).Hours().Do(api.AutomaticUpdate)
+	// gocron.Every(1).Hours().Do(api.DeleteWeatherPodcast)
+	// gocron.Start()
+
+	api.AutomaticUpdate()
 
 	// Po default-u port je :8080 osim ako je
 	// PORT sustavna varijabla definirana drukčije.
