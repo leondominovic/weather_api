@@ -145,6 +145,7 @@ func UpdateRaceHandler(c *gin.Context) {
 	start, end, err := CheckData(naziv, lat, lon, pocetak, kraj)
 	if err != nil {
 		c.JSON(http.StatusBadRequest, fmt.Sprint(err))
+		return
 	}
 
 	// Pozivanje funkcije za ažuriranje utrke
@@ -179,7 +180,7 @@ func UpdateRaceHandler(c *gin.Context) {
 
 	// Potom podatke prognoze proslijeđujemo funkciji
 	// koja će ih spremiti u bazu podataka
-	err = InsertWeatherPodcast(data, id)
+	err = InsertWeatherPodcast(data, update)
 	if err != nil {
 		log.Printf("Greška pri ažuriranju prognoza: %v", err)
 		fmt.Printf("Greška pri ažuriranju prognoza: %s", err)

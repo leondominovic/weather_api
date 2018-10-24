@@ -374,7 +374,7 @@ func DeleteRace(id int) (err error) {
 }
 
 // UpdateRace ažurira podataka o utrci
-func UpdateRace(id int64, name, lat, lon string, start, end time.Time) (returnValue int, err error) {
+func UpdateRace(id int64, name, lat, lon string, start, end time.Time) (returnValue int64, err error) {
 
 	sqlStr := `SELECT update_race($1, $2, $3, $4, $5, $6)`
 
@@ -404,8 +404,6 @@ func GetNotFinishedRaces() (races []NotFinishedRace, err error) {
 		log.Println(err)
 		return races, err
 	}
-
-	// Potrebno je zatvoriti konekciju kada se podatci učitaju
 	defer rows.Close()
 
 	// Čitanje dohvaćenih podataka

@@ -2,6 +2,7 @@ package main
 
 import (
 	"io"
+	"log"
 	"os"
 
 	"weather_api/api"
@@ -40,13 +41,14 @@ func initializeRoutes() *gin.Engine {
 }
 
 func main() {
+
+	// Zapisivanje grešaka u datoteku greske.log
+	f1, _ := os.Create("logger.log")
+	log.New(io.MultiWriter(f1), "log: ", log.Flags())
+
 	// Zapisivanje svih HTTP zahtjeca u gin.log
 	f, _ := os.Create("gin.log")
 	gin.DefaultWriter = io.MultiWriter(f)
-
-	// // Zapisivanje grešaka u datoteku greske.log
-	// f1, _ := os.Create("greske.log")
-	// log.SetOutput(io.MultiWriter(f1))
 
 	// Inicijalizacija rutera
 	router := initializeRoutes()
