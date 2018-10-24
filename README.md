@@ -48,18 +48,18 @@ Also is recommended that you install also [Dep](https://github.com/golang/dep) (
 ## Project setup
 
 1. Clone the repository in your `$GOPATH/src` directory, with `git clone https://github.com/leondominovic/weather_api`.
-After that, just move to that foler with `cd weather_api`.
+After that, just move to that folder with `cd weather_api`.
 
 2. Then run `dep ensure` to get all required libraries.
 
-3. Create a new blank database in Postgres and a new user for that database. Then import the database with `psql -U yourNewUserName newDataBaseName < database.psql`
+3. Create a new blank database in Postgresql and a new user for that database. Then import a database from this folder with `psql -U yourNewUserName newDataBaseName < database.psql`
 
-4. Then export all needed environment variable for database connection.
+4. Then export all needed environment variables for database connection.
 `
 export DBNAME = newDataBaseName
 export DBUSER = yourNewUserName
-export DBPASS = password for Posrgres user
-export DBHOST = host for Postgres. If you run Postgresql on your computer then is "localhost"
+export DBPASS = password for Postgresql user
+export DBHOST = host for Postgresql. If you run Postgresql on your computer then is "localhost"
 export DBPORT = default is 5432`
 
 5. Compile and run app with `go run main.go`
