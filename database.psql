@@ -216,13 +216,23 @@ BEGIN
                                         AND
                                             race_end >= element[3]::timestamp)
             THEN
-                INSERT INTO forecasts VALUES (element[1]::int, element[2], element[3]::timestamp,
-                                            element[4]::decimal, element[5]::decimal, element[6]::decimal,
-                                             element[7]::int, element[8]::decimal)
+                INSERT INTO forecasts VALUES (
+                                            element[1]::int,
+                                            element[2],
+                                            element[3]::timestamp,
+                                            element[4]::decimal,
+                                            element[5]::decimal,
+                                            element[6]::decimal,
+                                            element[7]::int,
+                                            element[8]::decimal)
                  ON CONFLICT ON CONSTRAINT forecasts_location_id_forecast_time_key
                  DO UPDATE SET 
-                    icon = element[2], rain = element[4]::decimal, snow = element[5]::decimal,
-                    temperature = element[6]::decimal, humidity = element[7]::int,  wind_speed = element[8]::decimal;
+                        icon = element[2],
+                        rain = element[4]::decimal,
+                        snow = element[5]::decimal,
+                        temperature = element[6]::decimal,
+                        humidity = element[7]::int, 
+                        wind_speed = element[8]::decimal;
                 i := i + 1;
         END IF;
     END LOOP;
