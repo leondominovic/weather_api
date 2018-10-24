@@ -31,6 +31,7 @@ func initializeRoutes() *gin.Engine {
 	v1 := router.Group("api/v1")
 	{
 		v1.GET("/race/:id/forecast", api.GetWeatherHandler)
+		v1.GET("/races", api.GetAllRacesHandler)
 		v1.POST("/race", api.CreateRaceHandler)
 		v1.GET("/race/:id", api.GetRaceHandler)
 		v1.PUT("/race/:id", api.UpdateRaceHandler)
