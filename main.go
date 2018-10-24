@@ -7,6 +7,7 @@ import (
 	"weather_api/api"
 	// Jednostavan i brz HTTP web framework
 	"github.com/gin-gonic/gin"
+	"github.com/jasonlvhit/gocron"
 	// Biblioteka koja nam omogućuje zadavanje
 	// vremnski određenih automatskih zadaća
 )
@@ -58,11 +59,9 @@ func main() {
 	// Proces za ažuriranje pokrećemo u posebnoj goroutine, kako,
 	// u sluačaju čekanja, kod dohvaćanja ažuriranja forecast, cijeli
 	// api ne bi postao nedostupan.
-	// go gocron.Every(6).Hours().Do(api.AutomaticUpdate)
-	// gocron.Every(1).Hours().Do(api.DeleteWeatherPodcast)
-	// gocron.Start()
-
-	api.AutomaticUpdate()
+	go gocron.Every(6).Hours().Do(api.AutomaticUpdate)
+	gocron.Every(1).Hours().Do(api.DeleteWeatherPodcast)
+	gocron.Start()
 
 	// Po default-u port je :8080 osim ako je
 	// PORT sustavna varijabla definirana drukčije.
