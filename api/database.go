@@ -141,6 +141,41 @@ func GetWeather(id int) (data WeatherData, err error) {
 	}
 }
 
+// GetAllRaces dohvaća sve utrke iz baze.
+func GetAllRaces() (races []Race, err error) {
+
+	sqlStr := `SELECT 
+					race_id,
+					name,
+					race_start,
+					race_end,
+					locations.lat,
+					locations.lon 
+			   FROM 
+					races  
+				NATURAL INNER JOIN 
+					locations`
+
+	rows, err := db.Query(sqlStr)
+	if err != nil {
+		log.Println(err)
+		return nil, err
+	}
+	defer rows.Close()
+
+	var row Race
+	for rows.Next() {
+		err = rows.Scan(&row.ID, &row.Name, &row.Begin, &row.End, &row.Lat, &row.Lon)
+		if err != nil {
+			log.Println(err)
+			return races, err
+		}
+		races = append(races, row)
+	}
+
+	return races, err
+}
+
 // UpdateWeather ažurira postojeće prognoze
 func UpdateWeather(allData []AllData) (err error) {
 
@@ -171,82 +206,6 @@ func UpdateWeather(allData []AllData) (err error) {
 	_, err = db.Exec(sqlStr, pq.Array(listData))
 
 	return err
-}
-
-// FirstTime služi za dodavanje prognoza za utrke
-// koje ih još nemaju
-func FirstTime(data []WeatherData, lat, lon string) error {
-
-	// Naredba za dohvaćanje id-a utrka koje još nemaju prognozu.
-	sqlStr1 := `SELECT utrka_id
-					FROM utrke
-					WHERE lat = $1 
-					AND lon = $2
-					AND raceStart > CURRENT_TIMESTAMP
-					AND NOT EXISTS 
-					(SELECT * FROM prognoze
-							  WHERE utrke.utrka_id = utrka_id)`
-
-	// Izvršavanje upita nad bazom, ako je neuspješan vraćamo grešku.
-	rows, err := db.Query(sqlStr1, lat, lon)
-	if err != nil {
-		log.Panicln("Greška pri dohvaćanju ID-ova pri automaskom ažuriranju!", err)
-		return err
-	}
-
-	var idList []uint
-	var id uint
-
-	//Čitamo dohvaćene id-ove
-	defer rows.Close()
-	for rows.Next() {
-		err := rows.Scan(&id)
-		if err != nil {
-			log.Panicln("Greška pri dohvaćanju ID-ova pri automaskom ažuriranju!", err)
-			return err
-		}
-		idList = append(idList, id)
-	}
-
-	// Ako ne postoji utrka za koje ne postoje dohvaćene prognoze
-	// prekidamo operaciju, jer nema potrebe nastavljati.
-	// Za njih je več funkcija UpdateWeather izvršilo ažuriranje podataka
-	if len(idList) == 0 {
-		return nil
-	}
-
-	sqlStr := `	INSERT INTO prognoze (
-							utrka_id,
-							ikona_stanja,
-							vrijeme_prognoze,
-							kisa,
-							snijeg,
-							temperatura,
-							vlaznost,
-							brzina_vjetra)
-				VALUES ($1,$2,$3,$4,$5,$6, $7, $8)`
-
-	// Za svaku utrku za koju ne postoje još progonoze,
-	// a nisu prošle dodajemo dohvaćane prognoze za nju.
-	for _, oneID := range idList {
-		for _, row := range data {
-			_, err := db.Exec(sqlStr,
-				oneID,
-				row.WeatherIcon,
-				row.Date,
-				row.Rain,
-				row.Snow,
-				row.Temp,
-				row.Humidity,
-				row.WindSpeed)
-			if err != nil {
-				log.Println("Greška pri dodavanju prognoza!", err)
-				return err
-			}
-		}
-	}
-
-	return nil
 }
 
 // CreateRace dodaje nove utrku u bazu

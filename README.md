@@ -13,8 +13,12 @@ For now comments are on Croatian language.
 * Path: /race/:id/forecast
 * Method: GET
 
-#### Get the deteils about one race
+#### Get the details about one race
 * Path: /race/:id
+* Method: GET
+
+#### Get the details from the all races
+* Path: /races
 * Method: GET
 
 #### Create race

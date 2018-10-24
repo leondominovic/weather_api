@@ -41,6 +41,18 @@ func GetWeatherHandler(c *gin.Context) {
 	return
 }
 
+// GetAllRacesHandler dohvaća sve utrke u bazi.
+func GetAllRacesHandler(c *gin.Context) {
+
+	races, err := GetAllRaces()
+	if err != nil {
+		c.JSON(http.StatusInternalServerError, gin.H{"Greska:": "neuspjelo dohvaćanje utrka"})
+		return
+	}
+	c.JSON(http.StatusOK, races)
+	return
+}
+
 // GetRaceHandler funkcija
 func GetRaceHandler(c *gin.Context) {
 	// Dohvaćamo id u obliku stringa iz GET zahtjeva
