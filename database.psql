@@ -167,7 +167,7 @@ BEGIN
                                                         races.race_start <= forecasts.forecast_time
                                                     AND
                                                         races.race_end >= forecasts.forecast_time);
-                RETURN 3;
+                RETURN race.loc_id;
         ELSE
             SELECT location_id INTO new_loc_id FROM locations WHERE lat=$5 AND lon = $6;
             IF NOT FOUND
@@ -187,7 +187,7 @@ BEGIN
                                                     AND
                                                         races.race_end >= forecasts.forecast_time);
             END IF;
-            RETURN 4;
+            RETURN new_loc_id;
         END IF;
     END IF;
 END;
@@ -379,14 +379,14 @@ COPY public.races (race_id, name, race_start, race_end, location_id) FROM stdin;
 -- Name: locations_location_id_seq; Type: SEQUENCE SET; Schema: public; Owner: weather_api_user
 --
 
-SELECT pg_catalog.setval('public.locations_location_id_seq', 24, true);
+SELECT pg_catalog.setval('public.locations_location_id_seq', 27, true);
 
 
 --
 -- Name: race_race_id_seq; Type: SEQUENCE SET; Schema: public; Owner: weather_api_user
 --
 
-SELECT pg_catalog.setval('public.race_race_id_seq', 144, true);
+SELECT pg_catalog.setval('public.race_race_id_seq', 147, true);
 
 
 --
