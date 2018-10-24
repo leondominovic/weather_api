@@ -1,6 +1,8 @@
 package api
 
+// WeatherPodcastByPeriod struktura
 type WeatherPodcastByPeriod struct {
+	Dt   int `json:"dt"`
 	Main struct {
 		Temp     float64 `json:"temp"`
 		Humidity int     `json:"humidity"`
@@ -19,9 +21,9 @@ type WeatherPodcastByPeriod struct {
 	Snow struct {
 		TreeH float64 `json:"3h"`
 	} `json:"snow"`
-	DtTxt string `json:"dt_txt"`
 }
 
+// WeatherPodcast struktura
 type WeatherPodcast struct {
 	Cod     string                   `json:"cod"`
 	Message float64                  `json:"message"`
@@ -29,6 +31,7 @@ type WeatherPodcast struct {
 	List    []WeatherPodcastByPeriod `json:"list"`
 }
 
+// WeatherData struktura
 type WeatherData struct {
 	Date        string  `json:"date"`
 	Temp        float64 `json:"temp"`
@@ -39,8 +42,9 @@ type WeatherData struct {
 	Snow        float64 `json:"snow"`
 }
 
+// Race struktura
 type Race struct {
-	Id    int    `json:"id"`
+	ID    int    `json:"id"`
 	Name  string `json:"name"`
 	Lat   string `json:"lat"`
 	Lon   string `json:"lon"`
@@ -48,7 +52,26 @@ type Race struct {
 	End   string `json:"end"`
 }
 
+// NotFinishedRace struktura
+type NotFinishedRace struct {
+	ID    int    `json:"id"`
+	Name  string `json:"name"`
+	Lat   string `json:"lat"`
+	Lon   string `json:"lon"`
+	Begin string `json:"begin"`
+	End   string `json:"end"`
+	LocID int    `json:"loc"`
+}
+
+// Location struktura
 type Location struct {
 	Lat string `json:"lat"`
 	Lon string `json:"lon"`
+}
+
+// AllData struktura je za sve
+// prognoze na određenoj lokaciji
+type AllData struct {
+	Loc  int
+	Data []WeatherData
 }
