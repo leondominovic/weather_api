@@ -43,4 +43,4 @@ Also is recommended that you install also [Dep](https://github.com/golang/dep) (
 
 * [Gin](https://github.com/gin-gonic/gin) - Fast HTTP web framework written in Go.
 * [Dep](https://github.com/golang/dep) - Dependency Management
-* [PostgreSQL][https://www.postgresql.org/] - SQL database
+* [PostgreSQL](https://www.postgresql.org/) - SQL database

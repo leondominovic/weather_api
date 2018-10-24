@@ -5,3 +5,4 @@ debug
 greske.log
 .vscode/launch.json
 logger.log
+vendor
