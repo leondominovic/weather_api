@@ -55,11 +55,12 @@ After that, just move to that folder with `cd weather_api`.
 3. Create a new blank database in Postgresql and a new user for that database. Then import a database from this folder with `psql -U yourNewUserName newDataBaseName < database.psql`
 
 4. Then export all needed environment variables for database connection.
-`
+```
 export DBNAME = newDataBaseName
 export DBUSER = yourNewUserName
 export DBPASS = password for Postgresql user
 export DBHOST = host for Postgresql. If you run Postgresql on your computer then is "localhost"
-export DBPORT = default is 5432`
+export DBPORT = default is 5432
+```
 
 5. Compile and run app with `go run main.go`
