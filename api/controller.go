@@ -19,7 +19,7 @@ import (
 func GetWeatherFromOpenWeather(lat, lon, start, end string) (data []WeatherData, err error) {
 
 	// Ovdje unesite svoj API ključ za Open Weather API.
-	apiKey := "e9ba147f034a8689b2fda25ac47794f5"
+	apiKey := "????"
 	url := fmt.Sprintf("https://api.openweathermap.org/data/2.5/forecast?lat=%s&lon=%s&units=metric&lang=hr&APPID=%s", lat, lon, apiKey)
 
 	// Incijaliziramo praznu listu strukture WeatherPodcastByPeriod.
